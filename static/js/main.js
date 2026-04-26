@@ -41,7 +41,7 @@ function initRevenueChart(data) {
             labels: parsed.map(d => d.month),
             datasets: [{
                 label: 'Revenue (৳)',
-                data: parsed.map(d => d.revenue),
+                data: parsed.map(d => parseFloat(d.revenue)),
                 borderColor: '#6366f1',
                 backgroundColor: 'rgba(99,102,241,0.1)',
                 borderWidth: 2,
@@ -78,7 +78,7 @@ function initInventoryChart(data) {
         data: {
             labels: parsed.map(d => d.product__category),
             datasets: [{
-                data: parsed.map(d => d.total),
+                data: parsed.map(d => parseFloat(d.total)),
                 backgroundColor: colors.slice(0, parsed.length),
                 borderColor: '#1a1a3e',
                 borderWidth: 2,
@@ -107,7 +107,7 @@ function initCategoryBarChart(data) {
             labels: parsed.map(d => d.product__category),
             datasets: [{
                 label: 'Total Quantity',
-                data: parsed.map(d => d.total),
+                data: parsed.map(d => parseFloat(d.total)),
                 backgroundColor: colors.slice(0, parsed.length),
                 borderRadius: 4,
             }]

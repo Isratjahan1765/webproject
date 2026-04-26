@@ -53,7 +53,7 @@
                     labels: lineData.map(d => d.name),
                     datasets: [{
                         label: 'Total Quantity',
-                        data: lineData.map(d => d.qty),
+                        data: lineData.map(d => parseFloat(d.qty)),
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16,185,129,0.1)',
                         borderWidth: 2,
