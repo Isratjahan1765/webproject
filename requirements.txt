@@ -31,3 +31,8 @@ django-debug-toolbar>=4.2
 
 # Environment
 python-decouple>=3.8
+
+# Production / Render Deployment
+gunicorn>=21.2
+whitenoise>=6.5
+dj-database-url>=2.1

@@ -1,0 +1,28 @@
+databases:
+  - name: sphwms-db
+    plan: free
+    databaseName: sphwms
+    user: sphwms_user
+
+services:
+  - type: web
+    name: sphwms
+    plan: free
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn sphwms.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sphwms-db
+          property: connectionURI
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: PYTHON_VERSION
+        value: "3.11.6"
+      - key: WEB_CONCURRENCY
+        value: "4"
