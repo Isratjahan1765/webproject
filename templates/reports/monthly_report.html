@@ -7,6 +7,7 @@
         <button class="btn btn-primary-custom"><i class="bi bi-funnel me-1"></i>{% trans "Filter" %}</button>
     </form>
 </div>
+
 <!-- Summary Cards -->
 <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="stat-card success"><div class="stat-icon success"><i class="bi bi-box-arrow-in-down"></i></div><div class="stat-content"><h3>{{ summary.total_arrived|floatformat:0|intcomma }}</h3><p>{% trans "Total Arrived" %}</p></div></div></div>
@@ -14,8 +15,168 @@
     <div class="col-md-3"><div class="stat-card warning"><div class="stat-icon warning"><i class="bi bi-currency-dollar"></i></div><div class="stat-content"><h3>৳{{ summary.total_arrival_value|floatformat:0|intcomma }}</h3><p>{% trans "Arrival Value" %}</p></div></div></div>
     <div class="col-md-3"><div class="stat-card info"><div class="stat-icon info"><i class="bi bi-cash-stack"></i></div><div class="stat-content"><h3>৳{{ summary.total_dispatch_value|floatformat:0|intcomma }}</h3><p>{% trans "Dispatch Value" %}</p></div></div></div>
 </div>
-<div class="card"><div class="card-header"><h5><i class="bi bi-file-earmark-bar-graph me-2"></i>{% trans "Monthly Report" %} — {{ year }}/{{ month|stringformat:"02d" }}</h5></div><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Product" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Dispatched" %}</th><th>{% trans "Net Change" %}</th><th>{% trans "Arrival Value" %}</th><th>{% trans "Dispatch Value" %}</th><th>{% trans "Avg Price" %}</th></tr></thead><tbody>
-{% for r in reports %}<tr><td><strong>{{ r.product.name }}</strong><br><small class="text-muted">{{ r.product.sku }}</small></td><td style="color:var(--success)">{{ r.total_arrived|floatformat:0|intcomma }}</td><td style="color:var(--primary)">{{ r.total_dispatched|floatformat:0|intcomma }}</td><td style="font-weight:600;{% if r.net_change >= 0 %}color:var(--success){% else %}color:var(--danger){% endif %}">{{ r.net_change|floatformat:0 }}</td><td>৳{{ r.total_arrival_value|floatformat:2|intcomma }}</td><td>৳{{ r.total_dispatch_value|floatformat:2|intcomma }}</td><td>৳{{ r.avg_unit_price|floatformat:2 }}</td></tr>
-{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-file-earmark-bar-graph"></i><h5>{% trans "No report data for this period" %}</h5><p>{% trans "Generate reports from the API or wait for activity." %}</p></div></td></tr>{% endfor %}
-</tbody></table></div></div></div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>{% trans "Stock Movement Trend (Stacked Area)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="areaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>{% trans "Value Distribution (Overlapping Circles)" %}</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="height: 300px; width: 100%;">
+                    <canvas id="bubbleChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5><i class="bi bi-file-earmark-bar-graph me-2"></i>{% trans "Monthly Detail Report" %} — {{ year }}/{{ month|stringformat:"02d" }}</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Product" %}</th>
+                        <th>{% trans "Arrived" %}</th>
+                        <th>{% trans "Dispatched" %}</th>
+                        <th>{% trans "Net Change" %}</th>
+                        <th>{% trans "Arrival Value" %}</th>
+                        <th>{% trans "Dispatch Value" %}</th>
+                        <th>{% trans "Avg Price" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reports %}
+                    <tr>
+                        <td><strong>{{ r.product.name }}</strong><br><small class="text-muted">{{ r.product.sku }}</small></td>
+                        <td style="color:var(--success)">{{ r.total_arrived|floatformat:0|intcomma }}</td>
+                        <td style="color:var(--primary)">{{ r.total_dispatched|floatformat:0|intcomma }}</td>
+                        <td style="font-weight:600;{% if r.net_change >= 0 %}color:var(--success){% else %}color:var(--danger){% endif %}">{{ r.net_change|floatformat:0 }}</td>
+                        <td>৳{{ r.total_arrival_value|floatformat:2|intcomma }}</td>
+                        <td>৳{{ r.total_dispatch_value|floatformat:2|intcomma }}</td>
+                        <td>৳{{ r.avg_unit_price|floatformat:2 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7"><div class="empty-state"><i class="bi bi-file-earmark-bar-graph"></i><h5>{% trans "No report data for this period" %}</h5><p>{% trans "Generate reports from the API or wait for activity." %}</p></div></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Area Chart (Stacked)
+        const histData = {{ historical_json|safe }};
+        const ctxArea = document.getElementById('areaChart');
+        if (ctxArea) {
+            new Chart(ctxArea, {
+                type: 'line',
+                data: {
+                    labels: histData.map(d => d.month),
+                    datasets: [
+                        {
+                            label: '{% trans "Dispatched" %}',
+                            data: histData.map(d => d.dispatched),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: '{% trans "Arrived" %}',
+                            data: histData.map(d => d.arrived),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.5)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // Overlapping Circles (Bubble Chart)
+        const circleData = {{ circle_data|safe }};
+        const ctxBubble = document.getElementById('bubbleChart');
+        if (ctxBubble) {
+            const total = circleData.arrival_val + circleData.dispatch_val;
+            const arrivalSize = total > 0 ? (circleData.arrival_val / total) * 100 : 0;
+            const dispatchSize = total > 0 ? (circleData.dispatch_val / total) * 100 : 0;
+
+            new Chart(ctxBubble, {
+                type: 'bubble',
+                data: {
+                    datasets: [
+                        {
+                            label: '{% trans "Arrival Value" %}',
+                            data: [{ x: 45, y: 50, r: arrivalSize }],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: '#10b981',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '{% trans "Dispatch Value" %}',
+                            data: [{ x: 55, y: 50, r: dispatchSize }],
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: false, min: 0, max: 100 },
+                        y: { display: false, min: 0, max: 100 }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8' } },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.dataset.label || '';
+                                    const value = label.includes('Arrival') ? circleData.arrival_val : circleData.dispatch_val;
+                                    return `${label}: ৳${value.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
