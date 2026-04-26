@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="card"><div class="card-header"><h5><i class="bi bi-truck me-2"></i>{{ page_title }}</h5></div><div class="card-body">
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+{% for field in form %}<div class="mb-3"><label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+{% if field.field.widget.input_type == 'checkbox' %}<div class="form-check"><input type="checkbox" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-check-input" {% if field.value %}checked{% endif %}></div>
+{% elif field.name == 'address' %}<textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" rows="2">{{ field.value|default:"" }}</textarea>
+{% elif field.name == 'photo' %}<input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" accept="image/*">
+{% elif field.name == 'vehicle_type' %}<select name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-select">{% for c in field.field.choices %}<option value="{{ c.0 }}" {% if field.value|stringformat:"s" == c.0|stringformat:"s" %}selected{% endif %}>{{ c.1 }}</option>{% endfor %}</select>
+{% else %}<input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" value="{{ field.value|default:'' }}" {% if field.field.required %}required{% endif %}>{% endif %}
+{% for error in field.errors %}<div class="text-danger mt-1" style="font-size:.85rem">{{ error }}</div>{% endfor %}</div>{% endfor %}
+<div class="d-flex gap-2 mt-4"><button type="submit" class="btn btn-primary-custom"><i class="bi bi-check-lg me-1"></i>{% trans "Save" %}</button><a href="{% url 'drivers:driver-list' %}" class="btn btn-outline-custom">{% trans "Cancel" %}</a></div>
+</form></div></div></div></div>
+{% endblock %}

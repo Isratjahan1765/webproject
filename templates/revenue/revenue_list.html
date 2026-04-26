@@ -1,0 +1,108 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+<!-- Revenue Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card success"><div class="stat-icon success"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-content"><h3>৳{{ summary.total_income|floatformat:0|intcomma }}</h3><p>{% trans "Yearly Income" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card danger"><div class="stat-icon danger"><i class="bi bi-graph-down-arrow"></i></div><div class="stat-content"><h3>৳{{ summary.total_expense|floatformat:0|intcomma }}</h3><p>{% trans "Yearly Expense" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card primary"><div class="stat-icon primary"><i class="bi bi-wallet2"></i></div><div class="stat-content"><h3>৳{{ summary.net_profit|floatformat:0|intcomma }}</h3><p>{% trans "Net Profit" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card warning"><div class="stat-icon warning"><i class="bi bi-currency-dollar"></i></div><div class="stat-content"><h3>৳{{ monthly_summary.net_profit|floatformat:0|intcomma }}</h3><p>{% trans "This Month" %}</p></div></div></div>
+</div>
+
+<!-- Revenue Charts -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart-line me-2"></i>{% trans "Expense By Product (Top 15)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="expenseByProductChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-pie-chart me-2"></i>{% trans "Revenue vs Expense (Doughnut)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="revVsExpChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <select onchange="location.href='?type='+this.value" class="form-select" style="max-width:200px"><option value="">{% trans "All Types" %}</option><option value="arrival" {% if selected_type == 'arrival' %}selected{% endif %}>Arrival (Expense)</option><option value="dispatch" {% if selected_type == 'dispatch' %}selected{% endif %}>Dispatch (Revenue)</option></select>
+</div>
+<div class="card"><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Date" %}</th><th>{% trans "Product" %}</th><th>{% trans "Type" %}</th><th>{% trans "Qty" %}</th><th>{% trans "Unit Price" %}</th><th>{% trans "Total" %}</th><th>{% trans "Reference" %}</th></tr></thead><tbody>
+{% for e in entries %}<tr><td>{{ e.transaction_date|date:"d M Y" }}</td><td>{{ e.product.name }}</td><td><span class="badge-status {% if e.transaction_type == 'dispatch' %}badge-confirmed{% else %}badge-pending{% endif %}">{{ e.get_transaction_type_display }}</span></td><td>{{ e.quantity|floatformat:0 }}</td><td>৳{{ e.unit_price|floatformat:2 }}</td><td style="font-weight:600">৳{{ e.total_amount|floatformat:2|intcomma }}</td><td><small class="text-muted">{{ e.reference }}</small></td></tr>
+{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-currency-dollar"></i><h5>{% trans "No revenue entries" %}</h5></div></td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Horizontal Bar Chart: Expense by Product
+        const expData = {{ expense_by_product|safe }};
+        const ctxExp = document.getElementById('expenseByProductChart');
+        if (ctxExp && expData.length > 0) {
+            const barColors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef'];
+            new Chart(ctxExp, {
+                type: 'bar',
+                data: {
+                    labels: expData.map(d => d.product),
+                    datasets: [{
+                        label: 'Total Expense (৳)',
+                        data: expData.map(d => d.total),
+                        backgroundColor: barColors.slice(0, expData.length),
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // Makes it horizontal
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(239,68,68,0.06)' } },
+                        y: { ticks: { color: '#64748b' }, grid: { display: false } },
+                    }
+                }
+            });
+        }
+
+        // Doughnut Chart: Revenue vs Expense
+        const rvData = {{ rev_vs_exp_data|safe }};
+        const ctxRv = document.getElementById('revVsExpChart');
+        if (ctxRv && rvData.length > 0) {
+            new Chart(ctxRv, {
+                type: 'doughnut',
+                data: {
+                    labels: rvData.map(d => d.label),
+                    datasets: [{
+                        data: rvData.map(d => d.amount),
+                        backgroundColor: ['#10b981', '#ef4444'], // Green for Revenue, Red for Expense
+                        borderColor: '#1a1a3e',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter' }, padding: 16 } },
+                    },
+                    cutout: '65%',
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

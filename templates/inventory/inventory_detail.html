@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+<div class="row g-4"><div class="col-lg-8">
+<div class="card mb-4"><div class="card-header"><h5><i class="bi bi-clipboard-data me-2"></i>{{ record.product.name }}</h5></div><div class="card-body">
+<div class="detail-grid">
+<div class="detail-item"><label>{% trans "Total Stock" %}</label><span>{{ record.total_quantity|floatformat:0|intcomma }} {{ record.product.get_unit_display }}</span></div>
+<div class="detail-item"><label>{% trans "Available" %}</label><span style="color:var(--success)">{{ record.available_quantity|floatformat:0|intcomma }}</span></div>
+<div class="detail-item"><label>{% trans "Reserved" %}</label><span class="text-warning">{{ record.reserved_quantity|floatformat:0 }}</span></div>
+<div class="detail-item"><label>{% trans "Stock Value" %}</label><span style="color:var(--accent)">৳{{ record.stock_value|floatformat:2|intcomma }}</span></div>
+<div class="detail-item"><label>{% trans "Unit Price (Live)" %}</label><span>৳{{ record.product.unit_price|floatformat:2 }}</span></div>
+<div class="detail-item"><label>{% trans "Status" %}</label><span class="badge-status badge-stock-{{ record.stock_status }}">{{ record.stock_status|title }}</span></div>
+<div class="detail-item"><label>{% trans "Location" %}</label><span>{{ record.warehouse_location|default:"-" }}</span></div>
+<div class="detail-item"><label>{% trans "Last Restock" %}</label><span>{{ record.last_restock_date|date:"d M Y H:i"|default:"-" }}</span></div>
+</div></div></div>
+<!-- Audit Log -->
+<div class="card"><div class="card-header"><h5><i class="bi bi-journal-text me-2"></i>{% trans "Inventory Log" %}</h5></div><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Type" %}</th><th>{% trans "Change" %}</th><th>{% trans "Before" %}</th><th>{% trans "After" %}</th><th>{% trans "Source" %}</th><th>{% trans "Date" %}</th></tr></thead><tbody>
+{% for log in logs %}<tr><td>{{ log.get_change_type_display }}</td><td style="font-weight:600;{% if log.quantity_change > 0 %}color:var(--success){% else %}color:var(--danger){% endif %}">{{ log.quantity_change|floatformat:0 }}</td><td>{{ log.quantity_before|floatformat:0 }}</td><td>{{ log.quantity_after|floatformat:0 }}</td><td>{{ log.source|default:"-" }}</td><td>{{ log.created_at|date:"d M Y H:i" }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted py-3">{% trans "No log entries" %}</td></tr>{% endfor %}
+</tbody></table></div></div></div></div>
+<div class="col-lg-4"><div class="card"><div class="card-header"><h5>{% trans "Product Info (FK)" %}</h5></div><div class="card-body">
+<p class="text-muted mb-2" style="font-size:.8rem">{% trans "Data fetched live from Product master table:" %}</p>
+<div class="detail-item mb-2"><label>{% trans "Name" %}</label><span>{{ record.product.name }}</span></div>
+<div class="detail-item mb-2"><label>{% trans "SKU" %}</label><span>{{ record.product.sku }}</span></div>
+<div class="detail-item mb-2"><label>{% trans "Category" %}</label><span>{{ record.product.get_category_display }}</span></div>
+<div class="detail-item"><label>{% trans "Current Price" %}</label><span style="color:var(--success)">৳{{ record.product.unit_price|floatformat:2 }}</span></div>
+<a href="{% url 'products:product-detail' record.product.pk %}" class="btn btn-outline-custom btn-sm mt-3 w-100"><i class="bi bi-box-seam me-1"></i>{% trans "View Product" %}</a>
+</div></div></div></div>
+{% endblock %}

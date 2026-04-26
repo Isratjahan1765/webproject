@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+<div class="filter-bar">
+    <select onchange="location.href='?status='+this.value" class="form-select" style="max-width:200px"><option value="">{% trans "All Status" %}</option>{% for val, label in statuses %}<option value="{{ val }}" {% if val == selected_status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+</div>
+<div class="card"><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Batch #" %}</th><th>{% trans "Driver" %}</th><th>{% trans "Date" %}</th><th>{% trans "Items" %}</th><th>{% trans "Status" %}</th><th>{% trans "Actions" %}</th></tr></thead><tbody>
+{% for arrival in arrivals %}<tr><td><a href="{% url 'arrivals:arrival-detail' arrival.pk %}" style="color:var(--primary);text-decoration:none;font-weight:600">{{ arrival.batch_number }}</a></td><td>{{ arrival.driver.name }}</td><td>{{ arrival.arrival_date|date:"d M Y H:i" }}</td><td>{{ arrival.total_items }}</td><td><span class="badge-status badge-{{ arrival.status }}">{{ arrival.get_status_display }}</span></td><td><a href="{% url 'arrivals:arrival-detail' arrival.pk %}" class="btn btn-sm btn-outline-custom"><i class="bi bi-eye"></i></a></td></tr>
+{% empty %}<tr><td colspan="6"><div class="empty-state"><i class="bi bi-box-arrow-in-down"></i><h5>{% trans "No arrivals" %}</h5></div></td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}

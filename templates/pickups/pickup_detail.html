@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+<div class="row g-4"><div class="col-lg-8">
+<div class="card mb-4"><div class="card-header"><h5><i class="bi bi-box-arrow-up me-2"></i>{{ pickup.pickup_number }}</h5>
+{% if pickup.status == 'pending' %}<div class="d-flex gap-2">
+<form method="post" action="{% url 'pickups:pickup-confirm' pickup.pk %}">{% csrf_token %}<button class="btn btn-sm btn-primary-custom" onclick="return confirmAction('Confirm this pickup? Stock will be deducted.')"><i class="bi bi-check-lg me-1"></i>{% trans "Confirm" %}</button></form>
+<form method="post" action="{% url 'pickups:pickup-cancel' pickup.pk %}">{% csrf_token %}<button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);border:none"><i class="bi bi-x-lg me-1"></i>{% trans "Cancel" %}</button></form>
+</div>{% endif %}</div>
+<div class="card-body"><div class="detail-grid">
+<div class="detail-item"><label>{% trans "Status" %}</label><span class="badge-status badge-{{ pickup.status }}">{{ pickup.get_status_display }}</span></div>
+<div class="detail-item"><label>{% trans "Driver" %}</label><span>{{ pickup.driver.name }}</span></div>
+<div class="detail-item"><label>{% trans "Date" %}</label><span>{{ pickup.pickup_date|date:"d M Y H:i" }}</span></div>
+<div class="detail-item"><label>{% trans "Destination" %}</label><span>{{ pickup.destination }}</span></div>
+<div class="detail-item"><label>{% trans "Buyer" %}</label><span>{{ pickup.buyer_name|default:"-" }}</span></div>
+<div class="detail-item"><label>{% trans "Buyer Phone" %}</label><span>{{ pickup.buyer_phone|default:"-" }}</span></div>
+{% if pickup.confirmed_by %}<div class="detail-item"><label>{% trans "Confirmed By" %}</label><span>{{ pickup.confirmed_by.get_full_name }}</span></div>{% endif %}
+</div></div></div>
+<div class="card"><div class="card-header"><h5><i class="bi bi-list-ul me-2"></i>{% trans "Pickup Items" %}</h5></div><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Product" %}</th><th>{% trans "Qty" %}</th><th>{% trans "Unit Price" %}</th><th>{% trans "Total" %}</th></tr></thead><tbody>
+{% for item in pickup.items.all %}<tr><td>{{ item.product.name }}<br><small class="text-muted">{{ item.product.sku }}</small></td><td>{{ item.quantity|floatformat:0 }}</td><td>৳{{ item.unit_price_at_pickup|floatformat:2 }}</td><td style="font-weight:600">৳{{ item.line_total|floatformat:2|intcomma }}</td></tr>{% endfor %}
+</tbody></table></div></div></div></div>
+<div class="col-lg-4"><div class="card"><div class="card-header"><h5>{% trans "Summary" %}</h5></div><div class="card-body">
+<div class="mb-3"><label class="form-label">{% trans "Total Items" %}</label><h3>{{ pickup.total_items }}</h3></div>
+<div class="mb-3"><label class="form-label">{% trans "Total Quantity" %}</label><h3>{{ pickup.total_quantity|floatformat:0|intcomma }}</h3></div>
+<div><label class="form-label">{% trans "Total Value" %}</label><h3 style="color:var(--success)">৳{{ pickup.total_value|floatformat:2|intcomma }}</h3></div>
+</div></div></div></div>
+{% endblock %}

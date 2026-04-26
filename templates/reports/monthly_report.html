@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+<div class="filter-bar">
+    <form method="get" class="d-flex gap-2 flex-wrap">
+        <select name="year" class="form-select" style="max-width:140px">{% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
+        <select name="month" class="form-select" style="max-width:160px">{% for m, name in months %}<option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+        <button class="btn btn-primary-custom"><i class="bi bi-funnel me-1"></i>{% trans "Filter" %}</button>
+    </form>
+</div>
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="stat-card success"><div class="stat-icon success"><i class="bi bi-box-arrow-in-down"></i></div><div class="stat-content"><h3>{{ summary.total_arrived|floatformat:0|intcomma }}</h3><p>{% trans "Total Arrived" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card primary"><div class="stat-icon primary"><i class="bi bi-box-arrow-up"></i></div><div class="stat-content"><h3>{{ summary.total_dispatched|floatformat:0|intcomma }}</h3><p>{% trans "Total Dispatched" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card warning"><div class="stat-icon warning"><i class="bi bi-currency-dollar"></i></div><div class="stat-content"><h3>৳{{ summary.total_arrival_value|floatformat:0|intcomma }}</h3><p>{% trans "Arrival Value" %}</p></div></div></div>
+    <div class="col-md-3"><div class="stat-card info"><div class="stat-icon info"><i class="bi bi-cash-stack"></i></div><div class="stat-content"><h3>৳{{ summary.total_dispatch_value|floatformat:0|intcomma }}</h3><p>{% trans "Dispatch Value" %}</p></div></div></div>
+</div>
+<div class="card"><div class="card-header"><h5><i class="bi bi-file-earmark-bar-graph me-2"></i>{% trans "Monthly Report" %} — {{ year }}/{{ month|stringformat:"02d" }}</h5></div><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Product" %}</th><th>{% trans "Arrived" %}</th><th>{% trans "Dispatched" %}</th><th>{% trans "Net Change" %}</th><th>{% trans "Arrival Value" %}</th><th>{% trans "Dispatch Value" %}</th><th>{% trans "Avg Price" %}</th></tr></thead><tbody>
+{% for r in reports %}<tr><td><strong>{{ r.product.name }}</strong><br><small class="text-muted">{{ r.product.sku }}</small></td><td style="color:var(--success)">{{ r.total_arrived|floatformat:0|intcomma }}</td><td style="color:var(--primary)">{{ r.total_dispatched|floatformat:0|intcomma }}</td><td style="font-weight:600;{% if r.net_change >= 0 %}color:var(--success){% else %}color:var(--danger){% endif %}">{{ r.net_change|floatformat:0 }}</td><td>৳{{ r.total_arrival_value|floatformat:2|intcomma }}</td><td>৳{{ r.total_dispatch_value|floatformat:2|intcomma }}</td><td>৳{{ r.avg_unit_price|floatformat:2 }}</td></tr>
+{% empty %}<tr><td colspan="7"><div class="empty-state"><i class="bi bi-file-earmark-bar-graph"></i><h5>{% trans "No report data for this period" %}</h5><p>{% trans "Generate reports from the API or wait for activity." %}</p></div></td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}

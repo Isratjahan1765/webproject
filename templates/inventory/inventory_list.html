@@ -1,0 +1,111 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+
+<!-- Inventory Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-7">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up-arrow me-2"></i>{% trans "Top 15 Products Stock Trend (Line)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="inventoryLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-triangle-half me-2"></i>{% trans "Category Distribution (Pyramid)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="inventoryPyramidChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <div class="search-box"><i class="bi bi-search"></i><form method="get" style="display:contents"><input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search inventory...' %}"></form></div>
+    <select onchange="location.href='?stock='+this.value+'&q={{ search_query }}'" class="form-select" style="max-width:180px"><option value="">{% trans "All Stock" %}</option><option value="low" {% if stock_filter == 'low' %}selected{% endif %}>{% trans "Low Stock" %}</option><option value="out" {% if stock_filter == 'out' %}selected{% endif %}>{% trans "Out of Stock" %}</option></select>
+</div>
+<div class="card"><div class="card-body p-0"><div class="table-container"><table class="table"><thead><tr><th>{% trans "Product" %}</th><th>{% trans "SKU" %}</th><th>{% trans "Entry Date" %}</th><th>{% trans "Total Qty" %}</th><th>{% trans "Available" %}</th><th>{% trans "Reserved" %}</th><th>{% trans "Stock Value" %}</th><th>{% trans "Status" %}</th><th>{% trans "Location" %}</th></tr></thead><tbody>
+{% for r in records %}<tr class="fade-in-card"><td><a href="{% url 'inventory:inventory-detail' r.pk %}" style="color:var(--text-heading);text-decoration:none;font-weight:600">{{ r.product.name }}</a></td><td><code style="color:var(--accent)">{{ r.product.sku }}</code></td><td>{{ r.product.created_at|date:"d M Y" }}</td><td>{{ r.total_quantity|floatformat:0|intcomma }}</td><td style="font-weight:600;color:var(--success)">{{ r.available_quantity|floatformat:0|intcomma }}</td><td class="text-warning">{{ r.reserved_quantity|floatformat:0 }}</td><td>৳{{ r.stock_value|floatformat:2|intcomma }}</td><td><span class="badge-status badge-stock-{{ r.stock_status }}">{{ r.stock_status|title }}</span></td><td>{{ r.warehouse_location|default:"-" }}</td></tr>
+{% empty %}<tr><td colspan="9"><div class="empty-state"><i class="bi bi-clipboard-data"></i><h5>{% trans "No inventory records" %}</h5></div></td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% include "includes/pagination.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Line Chart for Top 15 Products
+        const lineData = {{ inventory_line_data|safe }};
+        const ctxLine = document.getElementById('inventoryLineChart');
+        if (ctxLine && lineData.length > 0) {
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: lineData.map(d => d.name),
+                    datasets: [{
+                        label: 'Total Quantity',
+                        data: lineData.map(d => d.qty),
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#10b981',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                        y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(16,185,129,0.06)' } },
+                    }
+                }
+            });
+        }
+
+        // Pyramid (Polar Area) Chart for Category Distribution
+        const distData = {{ inventory_distribution|safe }};
+        const ctxPyramid = document.getElementById('inventoryPyramidChart');
+        if (ctxPyramid && distData.length > 0) {
+            const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
+            // Sort data descending to create a pyramid effect
+            distData.sort((a, b) => parseFloat(b.total) - parseFloat(a.total));
+            new Chart(ctxPyramid, {
+                type: 'polarArea', // The closest native Chart.js type to a pyramid/funnel
+                data: {
+                    labels: distData.map(d => d.product__category),
+                    datasets: [{
+                        data: distData.map(d => d.total),
+                        backgroundColor: colors.slice(0, distData.length).map(c => c + 'CC'), // Add transparency
+                        borderColor: '#1a1a3e',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+                    },
+                    scales: {
+                        r: { ticks: { display: false }, grid: { color: 'rgba(99,102,241,0.1)' } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

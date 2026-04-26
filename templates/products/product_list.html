@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load humanize i18n %}
+
+{% block content %}
+<div class="filter-bar">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <form method="get" style="display:contents">
+            <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search products...' %}">
+            {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+        </form>
+    </div>
+    <select onchange="location.href='?category='+this.value+'&q={{ search_query }}'" class="form-select" style="max-width:200px">
+        <option value="">{% trans "All Categories" %}</option>
+        {% for val, label in categories %}
+        <option value="{{ val }}" {% if val == selected_category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <a href="{% url 'products:product-create' %}" class="btn btn-primary-custom">
+        <i class="bi bi-plus-lg me-1"></i>{% trans "Add Product" %}
+    </a>
+</div>
+
+<!-- Category Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart-steps me-2"></i>{% trans "Product Categories (Bar)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="categoryBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card fade-in-card">
+            <div class="card-header">
+                <h5><i class="bi bi-pie-chart me-2"></i>{% trans "Product Categories (Pie)" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="inventoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-container">
+            <table class="table" id="product-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "SKU" %}</th>
+                        <th>{% trans "Product Name" %}</th>
+                        <th>{% trans "Category" %}</th>
+                        <th>{% trans "Unit" %}</th>
+                        <th>{% trans "Price (৳)" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr class="fade-in-card" id="product-row-{{ product.pk }}">
+                        <td><code style="color:var(--accent)">{{ product.sku }}</code></td>
+                        <td>
+                            <a href="{% url 'products:product-detail' product.pk %}" class="text-decoration-none" style="color:var(--text-heading);font-weight:600">
+                                {{ product.name }}
+                            </a>
+                            {% if product.name_bn %}<br><small class="text-muted">{{ product.name_bn }}</small>{% endif %}
+                        </td>
+                        <td>{{ product.get_category_display }}</td>
+                        <td>{{ product.get_unit_display }}</td>
+                        <td style="font-weight:600">৳{{ product.unit_price|floatformat:2|intcomma }}</td>
+                        <td>
+                            {% if product.is_active %}
+                            <span class="badge-status badge-confirmed">Active</span>
+                            {% else %}
+                            <span class="badge-status badge-cancelled">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'products:product-update' product.pk %}" class="btn btn-sm btn-outline-custom" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1" title="Delete" 
+                                onclick="openDeleteModal('{{ product.pk }}', '{{ product.name|escapejs }}', '{{ product.sku|escapejs }}', 'product-row-{{ product.pk }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="bi bi-box-seam"></i>
+                                <h5>{% trans "No products found" %}</h5>
+                                <p>{% trans "Add your first product to get started." %}</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include "includes/pagination.html" %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>{% trans "Delete Product" %}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "Are you sure you want to delete this product? This action cannot be undone." %}</p>
+                <div class="p-3 mb-3" style="background: var(--bg-body); border-radius: var(--radius-sm);">
+                    <div class="fw-bold" style="color: var(--text-heading);" id="modalProductName"></div>
+                    <code style="color: var(--accent);" id="modalProductSku"></code>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <form id="deleteProductForm" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        initInventoryChart({{ inventory_distribution|safe }});
+        initCategoryBarChart({{ inventory_distribution|safe }});
+
+        // AJAX Delete Logic
+        document.getElementById('deleteProductForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+            submitBtn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => {
+                // Instantly update the UI without reloading the page
+                bootstrap.Modal.getInstance(document.getElementById('deleteProductModal')).hide();
+                
+                const rowId = form.getAttribute('data-row-id');
+                const row = document.getElementById(rowId);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s ease';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                }
+                
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }).catch(err => {
+                alert('An error occurred while deleting.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    });
+
+    function openDeleteModal(id, name, sku, rowId) {
+        document.getElementById('modalProductName').textContent = name;
+        document.getElementById('modalProductSku').textContent = 'SKU: ' + sku;
+        const form = document.getElementById('deleteProductForm');
+        form.action = `/products/${id}/delete/`;
+        form.setAttribute('data-row-id', rowId);
+        new bootstrap.Modal(document.getElementById('deleteProductModal')).show();
+    }
+</script>
+{% endblock %}

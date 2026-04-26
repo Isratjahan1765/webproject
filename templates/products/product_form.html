@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-{% if form_action == 'create' %}plus-circle{% else %}pencil{% endif %} me-2"></i>{{ page_title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="product-form">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {% if field.field.widget.input_type == 'select' or field.name == 'category' or field.name == 'unit' %}
+                        <select name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-select">
+                            {% for choice in field.field.choices %}
+                            <option value="{{ choice.0 }}" {% if field.value|stringformat:"s" == choice.0|stringformat:"s" %}selected{% endif %}>{{ choice.1 }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif field.field.widget.input_type == 'checkbox' %}
+                        <div class="form-check">
+                            <input type="checkbox" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-check-input" {% if field.value %}checked{% endif %}>
+                        </div>
+                        {% elif field.name == 'description' or field.name == 'description_bn' %}
+                        <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" rows="3">{{ field.value|default:"" }}</textarea>
+                        {% elif field.name == 'image' %}
+                        <input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" accept="image/*">
+                        {% else %}
+                        <input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" value="{{ field.value|default:'' }}" {% if field.field.required %}required{% endif %} {% if field.name == 'unit_price' or field.name == 'minimum_stock' %}step="0.01"{% endif %}>
+                        {% endif %}
+                        {% if field.help_text %}<small class="text-muted">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger mt-1" style="font-size:.85rem">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary-custom"><i class="bi bi-check-lg me-1"></i>{% trans "Save" %}</button>
+                        <a href="{% url 'products:product-list' %}" class="btn btn-outline-custom">{% trans "Cancel" %}</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

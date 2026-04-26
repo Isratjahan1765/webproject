@@ -1,0 +1,190 @@
+{% extends "base.html" %}{% load humanize i18n %}
+{% block content %}
+
+<!-- Driver Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card primary">
+            <div class="stat-icon primary"><i class="bi bi-people"></i></div>
+            <div class="stat-content">
+                <h3>{{ total_drivers }}</h3>
+                <p>{% trans "Total Drivers" %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon success"><i class="bi bi-truck"></i></div>
+            <div class="stat-content">
+                <h3>{{ available_drivers }}</h3>
+                <p>{% trans "Available Now" %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon info"><i class="bi bi-collection"></i></div>
+            <div class="stat-content">
+                <h3>{{ unique_vehicle_types }}</h3>
+                <p>{% trans "Vehicle Types" %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="filter-bar">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <form method="get" style="display:contents">
+            <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="{% trans 'Search drivers by name, phone, or vehicle...' %}">
+        </form>
+    </div>
+    <a href="{% url 'drivers:driver-create' %}" class="btn btn-primary-custom">
+        <i class="bi bi-plus-lg me-1"></i>{% trans "Register Driver" %}
+    </a>
+</div>
+
+<div class="row g-4">
+    {% for driver in drivers %}
+    {% cycle '#ef4444' '#f97316' '#f59e0b' '#84cc16' '#10b981' '#06b6d4' '#3b82f6' '#6366f1' '#a855f7' '#ec4899' as dcolor silent %}
+    <div class="col-md-6 col-lg-4 col-xl-3" id="driver-card-{{ driver.pk }}">
+        <div class="card driver-card fade-in-card h-100" style="border-top: 4px solid {{ dcolor }}; transition: transform 0.2s;">
+            <div class="card-body text-center position-relative pt-4">
+                <div class="position-absolute top-0 end-0 m-2 d-flex">
+                    <a href="{% url 'drivers:driver-update' driver.pk %}" class="btn btn-sm btn-outline-custom me-1" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" 
+                        onclick="openDeleteModal('{{ driver.pk }}', '{{ driver.name|escapejs }}', '{{ driver.license_number|escapejs }}', 'driver-card-{{ driver.pk }}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                
+                <div class="driver-avatar mb-3 mx-auto" style="width: 80px; height: 80px; border-radius: 50%; background-color: {{ dcolor }}22; border: 2px solid {{ dcolor }}44; color: {{ dcolor }}; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800;">
+                    {{ driver.name|make_list|first|upper }}
+                </div>
+                
+                <h5 class="mb-1">
+                    <a href="{% url 'drivers:driver-detail' driver.pk %}" class="text-decoration-none" style="color:var(--text-heading); font-weight:700;">
+                        {{ driver.name }}
+                    </a>
+                </h5>
+                <p class="text-muted small mb-3">{{ driver.phone }}</p>
+                
+                <div class="d-flex justify-content-center mb-3">
+                    {% if driver.is_available %}
+                    <span class="badge-status badge-confirmed" style="background-color: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2);">
+                        <i class="bi bi-check-circle me-1"></i>{% trans "Available" %}
+                    </span>
+                    {% else %}
+                    <span class="badge-status badge-cancelled" style="background-color: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2);">
+                        <i class="bi bi-x-circle me-1"></i>{% trans "Unavailable" %}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <ul class="list-unstyled text-start mb-0 small" style="background: var(--bg-body); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                    <li class="mb-2"><i class="bi bi-truck me-2" style="color: {{ dcolor }};"></i> <strong>{{ driver.get_vehicle_type_display }}</strong></li>
+                    <li class="mb-2"><i class="bi bi-123 me-2" style="color: {{ dcolor }};"></i> <span style="font-family: monospace;">{{ driver.vehicle_number }}</span></li>
+                    <li><i class="bi bi-card-text me-2" style="color: {{ dcolor }};"></i> <span style="font-family: monospace;">{{ driver.license_number }}</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state py-5">
+                    <i class="bi bi-people" style="font-size: 3rem; color: var(--text-muted);"></i>
+                    <h5 class="mt-3">{% trans "No drivers found" %}</h5>
+                    <p>{% trans "There are currently no drivers matching your criteria." %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% include "includes/pagination.html" %}
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteDriverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>{% trans "Delete Driver" %}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "Are you sure you want to remove this driver? This action cannot be undone." %}</p>
+                <div class="p-3 mb-3" style="background: var(--bg-body); border-radius: var(--radius-sm);">
+                    <div class="fw-bold" style="color: var(--text-heading);" id="modalDriverName"></div>
+                    <code style="color: var(--accent);" id="modalDriverLicense"></code>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <form id="deleteDriverForm" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // AJAX Delete Logic
+        document.getElementById('deleteDriverForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Deleting...';
+            submitBtn.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => {
+                // Instantly update the UI without reloading the page
+                bootstrap.Modal.getInstance(document.getElementById('deleteDriverModal')).hide();
+                
+                const cardId = form.getAttribute('data-card-id');
+                const card = document.getElementById(cardId);
+                if (card) {
+                    card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+                    setTimeout(() => card.remove(), 300);
+                }
+                
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }).catch(err => {
+                alert('An error occurred while deleting.');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    });
+
+    function openDeleteModal(id, name, license, cardId) {
+        document.getElementById('modalDriverName').textContent = name;
+        document.getElementById('modalDriverLicense').textContent = 'License: ' + license;
+        const form = document.getElementById('deleteDriverForm');
+        form.action = `/drivers/${id}/delete/`;
+        form.setAttribute('data-card-id', cardId);
+        new bootstrap.Modal(document.getElementById('deleteDriverModal')).show();
+    }
+</script>
+{% endblock %}

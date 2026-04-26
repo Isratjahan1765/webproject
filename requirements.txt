@@ -1,0 +1,33 @@
+# Django Core
+Django>=4.2,<5.0
+djangorestframework>=3.14,<4.0
+django-filter>=23.0
+django-cors-headers>=4.0
+
+# Authentication
+djangorestframework-simplejwt>=5.3
+
+# Database (Production)
+psycopg2-binary>=2.9
+
+# Caching
+django-redis>=5.4
+
+# Utilities
+python-dateutil>=2.8
+Pillow>=10.0
+django-extensions>=3.2
+
+# Export
+openpyxl>=3.1
+reportlab>=4.0
+
+# WebSocket (Bonus)
+channels>=4.0
+channels-redis>=4.1
+
+# Development
+django-debug-toolbar>=4.2
+
+# Environment
+python-decouple>=3.8

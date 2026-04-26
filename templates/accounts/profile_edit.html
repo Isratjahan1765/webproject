@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load i18n %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="card"><div class="card-header"><h5><i class="bi bi-person-gear me-2"></i>{% trans "Edit Profile" %}</h5></div><div class="card-body">
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<h6 class="mb-3" style="color:var(--text-heading)">{% trans "Account Information" %}</h6>
+{% for field in user_form %}<div class="mb-3"><label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label><input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" value="{{ field.value|default:'' }}"></div>{% endfor %}
+<hr style="border-color:var(--border-color)">
+<h6 class="mb-3" style="color:var(--text-heading)">{% trans "Profile Settings" %}</h6>
+{% for field in form %}<div class="mb-3"><label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+{% if field.field.widget.input_type == 'checkbox' %}<div class="form-check"><input type="checkbox" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-check-input" {% if field.value %}checked{% endif %}></div>
+{% elif field.name == 'language_preference' %}<select name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-select">{% for c in field.field.choices %}<option value="{{ c.0 }}" {% if field.value == c.0 %}selected{% endif %}>{{ c.1 }}</option>{% endfor %}</select>
+{% elif field.name == 'avatar' %}<input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" accept="image/*">
+{% else %}<input type="text" name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="form-control" value="{{ field.value|default:'' }}">{% endif %}</div>{% endfor %}
+<div class="d-flex gap-2 mt-4"><button type="submit" class="btn btn-primary-custom"><i class="bi bi-check-lg me-1"></i>{% trans "Save Changes" %}</button><a href="{% url 'accounts:profile' %}" class="btn btn-outline-custom">{% trans "Cancel" %}</a></div>
+</form></div></div></div></div>
+{% endblock %}

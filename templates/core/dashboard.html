@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load humanize i18n %}
+
+{% block content %}
+<div id="dashboard-container">
+    <!-- KPI Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card primary fade-in-card">
+                <div class="stat-icon primary"><i class="bi bi-box-seam"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_products }}</h3>
+                    <p>{% trans "Active Products" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card success fade-in-card">
+                <div class="stat-icon success"><i class="bi bi-clipboard-data"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_inventory_quantity|floatformat:0|intcomma }}</h3>
+                    <p>{% trans "Total Stock Qty" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card warning fade-in-card">
+                <div class="stat-icon warning"><i class="bi bi-currency-dollar"></i></div>
+                <div class="stat-content">
+                    <h3>৳{{ stats.monthly_revenue|floatformat:0|intcomma }}</h3>
+                    <p>{% trans "Monthly Revenue" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card info fade-in-card">
+                <div class="stat-icon info"><i class="bi bi-truck"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.available_drivers }}</h3>
+                    <p>{% trans "Available Drivers" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card secondary fade-in-card">
+                <div class="stat-icon secondary"><i class="bi bi-box-arrow-in-down"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.monthly_arrivals }}</h3>
+                    <p>{% trans "Monthly Arrivals" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card primary fade-in-card">
+                <div class="stat-icon primary"><i class="bi bi-box-arrow-up"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.monthly_pickups }}</h3>
+                    <p>{% trans "Monthly Pickups" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card danger fade-in-card">
+                <div class="stat-icon danger"><i class="bi bi-exclamation-triangle"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.pending_arrivals }}</h3>
+                    <p>{% trans "Pending Arrivals" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card warning fade-in-card">
+                <div class="stat-icon warning"><i class="bi bi-hourglass-split"></i></div>
+                <div class="stat-content">
+                    <h3>{{ stats.pending_pickups }}</h3>
+                    <p>{% trans "Pending Pickups" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1: Revenue -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-12">
+            <div class="card fade-in-card">
+                <div class="card-header">
+                    <h5><i class="bi bi-graph-up me-2"></i>{% trans "Revenue Trend (6 Months)" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Categories -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card fade-in-card">
+                <div class="card-header">
+                    <h5><i class="bi bi-bar-chart-steps me-2"></i>{% trans "Product Categories (Bar)" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card fade-in-card">
+                <div class="card-header">
+                    <h5><i class="bi bi-pie-chart me-2"></i>{% trans "Product Categories (Pie)" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="inventoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Row -->
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card fade-in-card">
+                <div class="card-header">
+                    <h5><i class="bi bi-clock-history me-2"></i>{% trans "Recent Arrivals" %}</h5>
+                    <a href="{% url 'arrivals:arrival-list' %}" class="btn-outline-custom btn-sm">{% trans "View All" %}</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Batch" %}</th>
+                                    <th>{% trans "Driver" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for arrival in recent_arrivals %}
+                                <tr>
+                                    <td><a href="{% url 'arrivals:arrival-detail' arrival.pk %}" class="text-decoration-none" style="color:var(--primary)">{{ arrival.batch_number }}</a></td>
+                                    <td>{{ arrival.driver.name }}</td>
+                                    <td><span class="badge-status badge-{{ arrival.status }}">{{ arrival.get_status_display }}</span></td>
+                                    <td>{{ arrival.arrival_date|date:"d M Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">{% trans "No recent arrivals" %}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card fade-in-card">
+                <div class="card-header">
+                    <h5><i class="bi bi-box-arrow-up me-2"></i>{% trans "Recent Pickups" %}</h5>
+                    <a href="{% url 'pickups:pickup-list' %}" class="btn-outline-custom btn-sm">{% trans "View All" %}</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Pickup #" %}</th>
+                                    <th>{% trans "Destination" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pickup in recent_pickups %}
+                                <tr>
+                                    <td><a href="{% url 'pickups:pickup-detail' pickup.pk %}" class="text-decoration-none" style="color:var(--primary)">{{ pickup.pickup_number }}</a></td>
+                                    <td>{{ pickup.destination|truncatechars:25 }}</td>
+                                    <td><span class="badge-status badge-{{ pickup.status }}">{{ pickup.get_status_display }}</span></td>
+                                    <td>{{ pickup.pickup_date|date:"d M Y" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">{% trans "No recent pickups" %}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        initRevenueChart({{ revenue_chart_data|safe }});
+        initInventoryChart({{ inventory_distribution|safe }});
+        initCategoryBarChart({{ inventory_distribution|safe }});
+    });
+</script>
+{% endblock %}
