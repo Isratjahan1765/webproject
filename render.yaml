@@ -6,6 +6,8 @@ services:
     buildCommand: "./build.sh"
     startCommand: "gunicorn sphwms.wsgi:application"
     envVars:
+      - key: DATABASE_URL
+        value: "postgresql://neondb_owner:npg_XZ3tkdgVKDb5@ep-jolly-fog-amwb256e.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
